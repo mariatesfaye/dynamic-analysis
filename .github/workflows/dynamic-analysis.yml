@@ -1,0 +1,41 @@
+name: Dynamic Analysis with OWASP ZAP
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  dynamic-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Start Application
+        run: |
+          npm install
+          nohup npm start &
+        env:
+          CI: true
+
+      - name: Start OWASP ZAP Baseline Scan
+        id: zap_scan
+        uses: zaproxy/action-baseline@v0.8.0
+        with:
+          target: 'http://127.0.0.1:3000'
+          cmd_options: '-c .zap/rules.json' # Pass custom rules file via cmd_options
+          docker_name: 'owasp/zap2docker-stable'
+
+      - name: Show ZAP Results
+        run: cat zap.out
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: zap-report
+          path: zap.out
